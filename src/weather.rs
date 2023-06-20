@@ -14,7 +14,8 @@ pub fn get_weather(latitude: &str, longitude: &str) -> String {
     let value: Value = serde_json::from_str(&weather).unwrap();
 
     format!(
-        "{};{};{}",
+        "{};{};{};{}",
+        value["current_weather"]["weathercode"],
         value["current_weather"]["is_day"],
         value["current_weather"]["temperature"],
         value["current_weather"]["windspeed"]
