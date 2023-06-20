@@ -2,3 +2,4 @@
 target/
 config.toml
 data.csv
+data.db
