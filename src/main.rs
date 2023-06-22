@@ -1,12 +1,45 @@
 use std::fs;
+use std::process::exit;
 use std::time::Duration;
+use rusqlite::Connection;
+use serde_json::Value;
+use serde_json::Value::Bool;
 
 mod bike;
+mod database;
 mod file_writer;
 mod time;
 mod weather;
 
 fn main() {
+    let conn = Connection::open("data.db").unwrap();
+    conn.execute("CREATE TABLE IF NOT EXISTS status (id INTEGER PRIMARY KEY, timestamp TEXT, weather_data TEXT NOT NULL)", []).expect("TODO: panic message");
+
+    exit(0);
+    //https://gbfs.nextbike.net/maps/gbfs/v2/nextbike_dx/de/station_status.json
+    let weather = reqwest::blocking::get("https://gbfs.nextbike.net/maps/gbfs/v2/nextbike_dx/de/station_status.json")
+        .unwrap()
+        .text()
+        .unwrap_or("{}".to_string());
+    let value: Value = serde_json::from_str(&weather).unwrap();
+    let mut total_unused = 0;
+    for i in 0..100_000 {
+        let data = value["data"]["stations"].get(i);
+        if data.is_none() {
+            break
+        }
+
+        let unwrapped_data = data.unwrap();
+        if unwrapped_data["is_installed"] == Bool(false) {
+            continue
+        }
+
+        println!("{}. {}: {}", i, unwrapped_data["station_id"].to_string().replace('\"', ""), unwrapped_data["num_bikes_available"]);
+        total_unused += unwrapped_data["num_bikes_available"].to_string().parse::<i32>().unwrap();
+    }
+}
+
+fn main2() {
     let file_content = fs::read_to_string("config.toml").expect("Please create a config.toml file");
 
     let station_id =
